@@ -1,0 +1,13 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "metavita-worker"
+version = "0.0.0"
+description = "MetaVita async ingestion worker (Arq)."
+requires-python = ">=3.12"
+dependencies = ["arq>=0.26", "metavita-api"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/metavita_worker"]

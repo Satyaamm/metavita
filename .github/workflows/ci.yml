@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: metavita
+          POSTGRES_PASSWORD: metavita
+          POSTGRES_DB: metavita
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U metavita"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      METAVITA_DATABASE_URL: postgresql+asyncpg://metavita:metavita@localhost:5432/metavita
+      METAVITA_REDIS_URL: redis://localhost:6379/0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install ./packages/runtime ./packages/providers
+          pip install -e "./apps/api[dev]" ./apps/worker ./packages/sdk-py
+      - name: Lint
+        run: ruff check packages apps/api apps/worker
+      - name: Migrate
+        run: cd apps/api && alembic upgrade head
+      - name: Test
+        run: pytest packages/runtime apps/api packages/sdk-py -q
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Web — install, typecheck, test, build
+        working-directory: apps/web
+        run: |
+          npm install
+          npx tsc --noEmit
+          npx vitest run
+          npm run build
+      - name: SDK (TS) — typecheck + test
+        working-directory: packages/sdk-ts
+        run: |
+          npm install
+          npm run typecheck
+          npm test

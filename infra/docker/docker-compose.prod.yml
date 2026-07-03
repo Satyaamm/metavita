@@ -1,0 +1,52 @@
+# MetaVita full-stack overlay — builds and runs api + worker + web alongside the
+# infra services. Build context is the repo root.
+#   docker compose -f infra/docker/docker-compose.yml \
+#                  -f infra/docker/docker-compose.prod.yml up -d --build
+
+name: metavita
+
+services:
+  api:
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
+    environment:
+      METAVITA_DATABASE_URL: postgresql+asyncpg://metavita:metavita@postgres:5432/metavita
+      METAVITA_REDIS_URL: redis://redis:6379/0
+      METAVITA_S3_ENDPOINT_URL: http://minio:9000
+      METAVITA_CLAMAV_HOST: clamav
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
+  worker:
+    build:
+      context: ../..
+      dockerfile: apps/worker/Dockerfile
+    environment:
+      METAVITA_DATABASE_URL: postgresql+asyncpg://metavita:metavita@postgres:5432/metavita
+      METAVITA_REDIS_URL: redis://redis:6379/0
+      METAVITA_S3_ENDPOINT_URL: http://minio:9000
+    depends_on:
+      api:
+        condition: service_started
+      redis:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ../..
+      dockerfile: apps/web/Dockerfile
+    environment:
+      METAVITA_API_URL: http://api:8000
+    depends_on:
+      api:
+        condition: service_started
+    ports:
+      - "3000:3000"

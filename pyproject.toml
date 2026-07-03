@@ -1,0 +1,47 @@
+[project]
+name = "metavita-workspace"
+version = "0.0.0"
+description = "MetaVita — agentic RAG platform (Python workspace root)"
+requires-python = ">=3.12"
+
+[tool.uv.workspace]
+members = ["apps/api", "apps/worker", "packages/runtime", "packages/providers", "packages/sdk-py"]
+
+[tool.uv.sources]
+metavita-runtime = { workspace = true }
+metavita-providers = { workspace = true }
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC"]
+
+[tool.ruff.lint.per-file-ignores]
+# The integration catalog is a dense declarative data table — long rows are clearer
+# kept on one line than artificially wrapped.
+"apps/api/src/metavita_api/integrations/catalog.py" = ["E501"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI relies on call expressions (Depends/File/Header/Query) in argument defaults.
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.File",
+    "fastapi.Header",
+    "fastapi.Query",
+    "fastapi.Form",
+]
+
+[tool.mypy]
+python_version = "3.12"
+plugins = ["pydantic.mypy"]
+strict = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["apps", "packages"]
+markers = [
+    "integration: requires a live Postgres (set METAVITA_DATABASE_URL); skipped otherwise",
+]

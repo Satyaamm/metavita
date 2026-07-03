@@ -1,0 +1,1 @@
+"""MetaVita ingestion worker (Arq)."""

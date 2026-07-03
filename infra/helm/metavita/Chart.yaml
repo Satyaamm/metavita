@@ -1,0 +1,6 @@
+apiVersion: v2
+name: metavita
+description: MetaVita agentic RAG platform — API, ingestion worker, and web app.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
